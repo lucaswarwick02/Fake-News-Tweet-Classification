@@ -1,55 +1,30 @@
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import MultinomialNB
-from nltk.stem import WordNetLemmatizer
-from nltk import TweetTokenizer
-import logging
-
-
-logging.basicConfig(level=logging.INFO, format='%(asctime)s %(name)s %(levelname)s: %(message)s', datefmt='%Y-%m-%d,%H:%M:%S')
-logger = logging.getLogger('main')
+from sklearn.linear_model import PassiveAggressiveClassifier
+from preprocessor import Preprocessor
 
 
 class Model:
 
     def __init__(self):
-        self.tfidf = TfidfVectorizer(lowercase=False, analyzer='char_wb', ngram_range=(5, 5))
+        self.tfidf = TfidfVectorizer(analyzer='char_wb', ngram_range=(5, 5))
         self.model = MultinomialNB()
-        self.tokenizer = TweetTokenizer()
-        self.lemmatizer = WordNetLemmatizer()
+        self.preprocessor = Preprocessor()
 
     def fit(self, df):
-        logger.info('Training Model...')
+        # Training Preprocessing
+        df.drop_duplicates(subset=['tweetText'], keep='first', inplace=True, ignore_index = False)
 
-        self.tfidf.fit(df['tweetText'])
+        features = self.preprocessor.process_features(df)
+        labels = self.preprocessor.process_labels(df)
 
-        features = self._preprocess_features(df)
-        labels = self._preprocess_labels(df)
+        tfidf_features = self.tfidf.fit_transform(features)
 
-        self.model.fit(features, labels)
-        logger.info('... Done')
+        self.model.fit(tfidf_features, labels)
 
     def predict(self, df):
-        logger.info('Predicting Labels...')
+        features = self.preprocessor.process_features(df)
 
-        features = self._preprocess_features(df)
+        tfidf_features = self.tfidf.transform(features)
 
-        y_pred = self.model.predict(features)
-        logger.info('... Done')
-
-        return y_pred
-
-    def _preprocess_features(self, df):
-        features = df['tweetText'].apply(lambda text: self._filter_text(text))
-        features = self.tfidf.transform(features)
-        return features
-
-    def _preprocess_labels(self, df):
-        labels = df['label']
-        labels = labels.apply(lambda label: 'fake' if label == 'humor' else label)
-        return labels
-
-    def _filter_text(self, text: str) -> str:
-        tokens = self.tokenizer.tokenize(text)
-        # tokens = [self.lemmatizer.lemmatize(word) for word in tokens]
-
-        return ' '.join(tokens)
+        return self.model.predict(tfidf_features)
