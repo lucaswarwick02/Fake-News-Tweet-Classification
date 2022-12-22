@@ -3,7 +3,7 @@ from nltk import TweetTokenizer, WordNetLemmatizer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import MultinomialNB
 from scipy.sparse import hstack
-from sklearn.preprocessing import normalize
+from sklearn.preprocessing import MinMaxScaler
 import re
 
 
@@ -24,6 +24,9 @@ class Model:
                                       u"\U00002702-\U000027B0"
                                       u"\U000024C2-\U0001F251"
                                       "]+", flags=re.UNICODE)
+
+        self.emojis_scalar = MinMaxScaler()
+        self.hashtags_scalar = MinMaxScaler()
 
     def fit(self, df: pd.DataFrame):
         """
@@ -61,7 +64,6 @@ class Model:
 
     def _extract_features(self, df: pd.DataFrame) -> pd.DataFrame:
         df['emojis'] = df['tweetText'].apply(lambda text: self._count_emojis(text))
-        df['urls'] = df['tweetText'].apply(lambda text: self._count_urls(text))
         df['hashtags'] = df['tweetText'].apply(lambda text: self._count_hashtags(text))
         df['filteredTweetText'] = df['tweetText'].apply(lambda text: self._filter_text(text))
 
@@ -69,22 +71,20 @@ class Model:
 
     def _generate_features(self, df: pd.DataFrame, fit_tfidf: bool):
         if fit_tfidf:
-            tfidf_features = self.tfidf.fit_transform(df['filteredTweetText'])
+            return hstack([
+                self.tfidf.fit_transform(df['filteredTweetText']),
+                self.emojis_scalar.fit_transform(df['emojis'].values.reshape(-1, 1)),
+                self.hashtags_scalar.fit_transform(df['hashtags'].values.reshape(-1, 1))
+            ])
         else:
-            tfidf_features = self.tfidf.transform(df['filteredTweetText'])
-
-        features = hstack([
-            tfidf_features,
-            normalize([df['emojis'].values]).reshape(-1, 1),
-            normalize([df['urls'].values]).reshape(-1, 1),
-            normalize([df['hashtags'].values]).reshape(-1, 1)
-        ])
-
-        return features
+            return hstack([
+                self.tfidf.transform(df['filteredTweetText']),
+                self.emojis_scalar.transform(df['emojis'].values.reshape(-1, 1)),
+                self.hashtags_scalar.transform(df['hashtags'].values.reshape(-1, 1))
+            ])
 
     def _filter_text(self, text: str) -> str:
         text = re.sub(self.emoji_regex, '', text)
-        # text = re.sub(self.url_regex, '', text)
         tokens = self.tokenizer.tokenize(text)
         tokens = [self._lemmatize_word(word) for word in tokens]
 
@@ -98,9 +98,6 @@ class Model:
 
     def _count_emojis(self, text: str) -> int:
         return len(re.findall(self.emoji_regex, text))
-
-    def _count_urls(self, text: str) -> int:
-        return len(re.findall(self.url_regex, text))
 
     def _count_hashtags(self, text: str) -> int:
         return len([word for word in self.tokenizer.tokenize(text) if word[0] == '#'])
