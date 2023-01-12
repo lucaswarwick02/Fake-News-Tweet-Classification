@@ -12,7 +12,7 @@ class Model:
     def __init__(self):
         self.tfidf = TfidfVectorizer(analyzer='char_wb', ngram_range=(5, 5))
         self.model = MultinomialNB()
-        self.tokenizer = TweetTokenizer(preserve_case=False, reduce_len=True)
+        self.tokenizer = TweetTokenizer(preserve_case=False)
         self.lemmatizer = WordNetLemmatizer()
 
         self.url_regex = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
