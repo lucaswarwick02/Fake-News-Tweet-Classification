@@ -1,6 +1,6 @@
 from sklearn.metrics import ConfusionMatrixDisplay
 from sklearn.metrics import classification_report
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, f1_score
 from model import Model
 import pandas as pd
 import datetime
@@ -44,11 +44,13 @@ def get_testing_data() -> pd.DataFrame:
 def evaluate(y_test, y_pred):
     # Accuracy Score
     accuracy = accuracy_score(y_test, y_pred)
+    f1 = f1_score(y_test, y_pred, average='weighted')
     logger.info(f'Accuracy Score = {accuracy:.4f}')
+    logger.info(f'F1 Score = {f1:.4f}')
 
     # Confusion Matrix
     cm = ConfusionMatrixDisplay.from_predictions(y_test, y_pred, cmap='Blues')
-    cm.ax_.set_title(f'Accuracy = {accuracy:.4f}')
+    cm.ax_.set_title(f'f1 score = {f1:.4f}')
     cm.figure_.savefig(os.path.join(OUTPUT_PATH, 'confusion_matrix.png'))
     logger.info('Confusion Matrix saved to confusion_matrix.png')
 
