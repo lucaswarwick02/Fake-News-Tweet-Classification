@@ -60,6 +60,45 @@ def evaluate(y_test, y_pred):
     logger.info('Classification Report saved to classification_report.txt')
 
 
+def custom_accuracy(y_test, y_pred):
+    positive_label = 'fake'
+    negative_label = 'real'
+
+    TP = 0
+    FP = 0
+    TN = 0
+    FN = 0
+
+    for i in range(len(y_pred)):
+        if y_test[i] == positive_label and y_pred[i] == positive_label:
+            TP += 1
+        if y_test[i] == negative_label and y_pred[i] == positive_label:
+            FP += 1
+        if y_test[i] == negative_label and y_pred[i] == negative_label:
+            TN += 1
+        if y_test[i] == positive_label and y_pred[i] == negative_label:
+            FN += 1
+
+    accuracy = (TP + TN) / (TP + TN + FP + FN)
+    logger.info(f'accuracy = {accuracy:.4f}')
+
+    logger.info('fake:')
+    precision = TP / (TP + FP)
+    recall = TP / (TP + FN)
+    f1 = 2 * ((precision * recall) / (precision + recall))
+    logger.info(f'... precision = {precision:.4f}')
+    logger.info(f'... recall = {recall:.4f}')
+    logger.info(f'... f1 = {f1:.4f}')
+
+    logger.info('real:')
+    precision = TN / (TN + FN)
+    recall = TN / (TN + FP)
+    f1 = 2 * ((precision * recall) / (precision + recall))
+    logger.info(f'... precision = {precision:.4f}')
+    logger.info(f'... recall = {recall:.4f}')
+    logger.info(f'... f1 = {f1:.4f}')
+
+
 if __name__ == '__main__':
     # Load Training and Testing Sets
     train_df = get_training_data()
@@ -74,4 +113,6 @@ if __name__ == '__main__':
     y_test = test_df['label']
 
     evaluate(y_test, y_pred)
+
+    custom_accuracy(y_test, y_pred)
 
